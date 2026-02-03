@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TimerStatus, UserSettings, EyeTip } from './types';
-import { getPersonalizedTip } from './services/geminiService';
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<TimerStatus>(TimerStatus.IDLE);
