@@ -2,6 +2,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TimerStatus, UserSettings, EyeTip } from './types';
 
+// Consejos locales para evitar el uso de IA y ahorrar tokens
+const LOCAL_TIPS: EyeTip[] = [
+  { title: "Regla 20-20-20", description: "Cada 20 minutos, mira algo a 6 metros durante 20 segundos." },
+  { title: "Parpadeo consciente", description: "Intenta parpadear más seguido para mantener tus ojos hidratados." },
+  { title: "Brillo de pantalla", description: "Ajusta el brillo de tu monitor para que coincida con la luz de tu habitación." },
+  { title: "Distancia adecuada", description: "Mantén tu pantalla a unos 50-60 cm de distancia de tus ojos." }
+];
+
 const App: React.FC = () => {
   const [status, setStatus] = useState<TimerStatus>(TimerStatus.IDLE);
   const [timeLeft, setTimeLeft] = useState(20 * 60);
@@ -15,12 +23,18 @@ const App: React.FC = () => {
       vibrationEnabled: true
     };
   });
-  const [currentTip, setCurrentTip] = useState<EyeTip | null>(null);
+  
+  const [currentTip, setCurrentTip] = useState<EyeTip | null>(LOCAL_TIPS[0]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isBlobUrl, setIsBlobUrl] = useState(false);
   const timerRef = useRef<any>(null);
 
-  // Verificamos si la URL es válida para compartir
+  // Función local para cambiar el consejo sin usar IA
+  const getRandomTip = () => {
+    const randomIndex = Math.floor(Math.random() * LOCAL_TIPS.length);
+    setCurrentTip(LOCAL_TIPS[randomIndex]);
+  };
+
   useEffect(() => {
     if (window.location.href.startsWith('blob:')) {
       setIsBlobUrl(true);
@@ -58,7 +72,7 @@ const App: React.FC = () => {
   const stopTimer = () => setStatus(TimerStatus.IDLE);
 
   useEffect(() => {
-    getPersonalizedTip().then(setCurrentTip);
+    getRandomTip();
     if ("Notification" in window) Notification.requestPermission();
   }, []);
 
@@ -70,11 +84,12 @@ const App: React.FC = () => {
             if (status === TimerStatus.RUNNING) {
               setStatus(TimerStatus.BREAK);
               notifyUser("¡Pausa!", "Mira a lo lejos.");
-              getPersonalizedTip().then(setCurrentTip);
+              getRandomTip();
               return settings.breakDuration * 60;
             } else {
               setStatus(TimerStatus.RUNNING);
               notifyUser("¡Vuelve!", "Sigue con tu trabajo.");
+              getRandomTip();
               return settings.workDuration * 60;
             }
           }
@@ -92,11 +107,6 @@ const App: React.FC = () => {
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
-  // El progreso ya no se usa visualmente con la barra, pero se mantiene si se necesita para lógica futura.
-  // const progress = status === TimerStatus.RUNNING 
-  //   ? (timeLeft / (settings.workDuration * 60)) * 100 
-  //   : (timeLeft / (settings.breakDuration * 60)) * 100;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center p-6 selection:bg-blue-500/30">
@@ -119,7 +129,6 @@ const App: React.FC = () => {
       {/* TIMER CARD */}
       <main className="w-full max-w-md flex flex-col items-center gap-10">
         <div className="relative w-72 h-72 flex items-center justify-center">
-          {/* El círculo de progreso SVG ha sido eliminado. El div interno ahora es el círculo. */}
           <div className="w-64 h-64 rounded-full bg-slate-900 shadow-xl flex flex-col items-center justify-center">
             <span className="text-6xl font-black font-mono tracking-tighter text-white">{formatTime(timeLeft)}</span>
             <div className={`mt-2 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${status === TimerStatus.BREAK ? 'bg-emerald-500/10 text-emerald-400' : 'bg-blue-500/10 text-blue-400'}`}>
@@ -128,7 +137,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* CONTROLS */}
         <div className="flex gap-4 w-full">
           <button 
             onClick={status === TimerStatus.IDLE ? startTimer : stopTimer}
@@ -138,12 +146,8 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        {/* TIP CARD */}
         {currentTip && (
           <div className="w-full bg-slate-900 border border-slate-800/50 p-6 rounded-[2.5rem] relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1a1 1 0 112 0v1a1 1 0 11-2 0zM13.464 15.05a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1z" /></svg>
-            </div>
             <span className="text-blue-500 text-[10px] font-black uppercase tracking-[0.2em] mb-3 block">Consejo Salud Visual</span>
             <h4 className="text-lg font-bold text-white mb-2">{currentTip.title}</h4>
             <p className="text-sm text-slate-400 leading-relaxed">{currentTip.description}</p>
@@ -153,115 +157,31 @@ const App: React.FC = () => {
 
       {/* SETTINGS MODAL */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col p-6 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col p-6">
           <div className="w-full max-w-md mx-auto h-full flex flex-col">
             <div className="flex justify-between items-center mb-10">
               <h2 className="text-3xl font-black tracking-tight text-white">Ajustes</h2>
               <button onClick={() => setIsSettingsOpen(false)} className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-xl">✕</button>
             </div>
-
             <div className="flex-1 overflow-y-auto space-y-8 pr-2">
-              {/* SECCIÓN INSTALACIÓN CRÍTICA */}
               <section className="bg-blue-600/10 border border-blue-500/20 p-6 rounded-[2.5rem] space-y-4">
-                <h3 className="text-blue-400 text-xs font-black uppercase tracking-widest">⚠️ Solución a Error 404</h3>
-                
-                {isBlobUrl ? (
-                  <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl space-y-3">
-                    <p className="text-xs text-red-400 font-bold">¡Atención! Estás en una URL temporal (blob).</p>
-                    <p className="text-[11px] text-slate-400 leading-tight">
-                      Para que funcione en tu móvil: <br/>
-                      1. En el editor de código, busca el botón <b>"Run"</b> o <b>"Preview"</b>.<br/>
-                      2. Busca un icono de "Flecha" o "Cuadrado con flecha" que diga <b>"Open in new window"</b>.<br/>
-                      3. Solo cuando la URL NO empiece por "blob:", el QR funcionará.
-                    </p>
+                <h3 className="text-blue-400 text-xs font-black uppercase tracking-widest">Instalación</h3>
+                <div className="flex flex-col items-center gap-4">
+                  <div className="bg-white p-3 rounded-3xl">
+                    <img src={qrUrl} alt="QR de Instalación" className="w-48 h-48" />
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="bg-white p-3 rounded-3xl shadow-2xl">
-                      <img src={qrUrl} alt="QR de Instalación" className="w-48 h-48" />
-                    </div>
-                    <p className="text-[11px] text-slate-400 text-center">Escanea este código con tu cámara Android para abrir la versión instalable.</p>
-                  </div>
-                )}
+                  <p className="text-[11px] text-slate-400 text-center">Escanea para abrir en tu móvil e instalar como App.</p>
+                </div>
               </section>
 
-              {/* AJUSTES DE TIEMPO */}
               <section className="space-y-6">
                 <div className="space-y-2">
                   <div className="flex justify-between items-end">
-                    <span className="text-sm font-bold text-slate-300">Intervalo de Trabajo</span>
-                    <span className="text-blue-400 font-black font-mono">{settings.workDuration} min</span>
+                    <span className="text-sm font-bold text-slate-300">Trabajo (min)</span>
+                    <span className="text-blue-400 font-black font-mono">{settings.workDuration}</span>
                   </div>
                   <input 
                     type="range" min="5" max="60" step="5"
                     value={settings.workDuration}
                     onChange={(e) => setSettings({...settings, workDuration: parseInt(e.target.value)})}
-                    className="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between items-end">
-                    <span className="text-sm font-bold text-slate-300">Duración del Descanso</span>
-                    <span className="text-emerald-400 font-black font-mono">{settings.breakDuration} min</span>
-                  </div>
-                  <input 
-                    type="range" min="1" max="10" step="1"
-                    value={settings.breakDuration}
-                    onChange={(e) => setSettings({...settings, breakDuration: parseInt(e.target.value)})}
-                    className="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                  />
-                </div>
-              </section>
-
-              {/* TOGGLES */}
-              <section className="bg-slate-900/50 rounded-[2.5rem] p-4 space-y-2">
-                {[
-                  { label: 'Notificaciones', key: 'notificationsEnabled' },
-                  { label: 'Sonido de Alerta', key: 'soundEnabled' },
-                  { label: 'Vibración', key: 'vibrationEnabled' },
-                ].map((item) => (
-                  <button 
-                    key={item.key}
-                    onClick={() => setSettings({...settings, [item.key]: !settings[item.key as keyof UserSettings]})}
-                    className="w-full flex justify-between items-center p-4 hover:bg-slate-800 rounded-2xl transition-colors"
-                  >
-                    <span className="text-sm font-bold">{item.label}</span>
-                    <div className={`w-12 h-6 rounded-full relative transition-colors ${settings[item.key as keyof UserSettings] ? 'bg-blue-600' : 'bg-slate-700'}`}>
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings[item.key as keyof UserSettings] ? 'left-7' : 'left-1'}`} />
-                    </div>
-                  </button>
-                ))}
-              </section>
-            </div>
-
-            <button 
-              onClick={() => setIsSettingsOpen(false)}
-              className="w-full py-5 bg-white text-slate-950 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] mt-6 active:scale-95 transition-transform"
-            >
-              Guardar y Volver
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* FULL SCREEN BREAK OVERLAY */}
-      {status === TimerStatus.BREAK && (
-        <div className="fixed inset-0 z-[100] bg-blue-600 flex flex-col items-center justify-center p-10 animate-in fade-in zoom-in duration-500">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[20rem] font-black text-white opacity-5 pointer-events-none">EYES</div>
-          <h2 className="text-4xl font-black text-white text-center mb-4 uppercase tracking-tighter italic">¡Descansa!</h2>
-          <p className="text-blue-100 text-center font-bold mb-10 max-w-xs">Enfoca tus ojos en algo a 6 metros de distancia durante 20 segundos.</p>
-          <div className="text-9xl font-black font-mono text-white mb-12 drop-shadow-2xl">{formatTime(timeLeft)}</div>
-          <button 
-            onClick={() => setStatus(TimerStatus.RUNNING)}
-            className="px-12 py-5 bg-white text-blue-600 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 transition-transform"
-          >
-            Omitir Pausa
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default App;
+                    className="w-full h-2 bg-slate-
