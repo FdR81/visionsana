@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TimerStatus, UserSettings, EyeTip } from './types';
 
@@ -184,4 +183,49 @@ const App: React.FC = () => {
                     type="range" min="5" max="60" step="5"
                     value={settings.workDuration}
                     onChange={(e) => setSettings({...settings, workDuration: parseInt(e.target.value)})}
-                    className="w-full h-2 bg-slate-
+                    className="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-end">
+                    <span className="text-sm font-bold text-slate-300">Descanso (min)</span>
+                    <span className="text-emerald-400 font-black font-mono">{settings.breakDuration}</span>
+                  </div>
+                  <input 
+                    type="range" min="1" max="10" step="1"
+                    value={settings.breakDuration}
+                    onChange={(e) => setSettings({...settings, breakDuration: parseInt(e.target.value)})}
+                    className="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  />
+                </div>
+              </section>
+            </div>
+            <button 
+              onClick={() => setIsSettingsOpen(false)}
+              className="w-full py-5 bg-white text-slate-950 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] mt-6"
+            >
+              Guardar y Volver
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* BREAK OVERLAY */}
+      {status === TimerStatus.BREAK && (
+        <div className="fixed inset-0 z-[100] bg-blue-600 flex flex-col items-center justify-center p-10">
+          <h2 className="text-4xl font-black text-white text-center mb-4 italic">¡DESCANSA!</h2>
+          <p className="text-blue-100 text-center font-bold mb-10">Mira a 6 metros durante 20 segundos.</p>
+          <div className="text-9xl font-black font-mono text-white mb-12">{formatTime(timeLeft)}</div>
+          <button 
+            onClick={() => setStatus(TimerStatus.RUNNING)}
+            className="px-12 py-5 bg-white text-blue-600 rounded-[2rem] font-black text-xs uppercase"
+          >
+            Omitir
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
