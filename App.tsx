@@ -24,34 +24,25 @@ const App: React.FC = () => {
   const timerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 1. Pedir permiso de notificaciones al cargar
   useEffect(() => {
     if ("Notification" in window && Notification.permission !== "granted") {
       Notification.requestPermission();
     }
-    // Sonido de alarma más fuerte (tipo sirena industrial)
     audioRef.current = new Audio('https://actions.google.com/sounds/v1/alarms/industrial_alarm_loop.ogg');
     audioRef.current.loop = true;
   }, []);
 
   const startAlarm = useCallback(() => {
     setIsAlarmActive(true);
-
-    // Sonido
     if (settings.soundEnabled && audioRef.current) {
-      audioRef.current.play().catch(() => console.log("Permiso de audio requerido"));
+      audioRef.current.play().catch(() => console.log("Audio bloqueado por el navegador"));
     }
-
-    // Vibración de "Emergencia" (Vibra 1 seg, para 0.5 seg)
     if (settings.vibrationEnabled && navigator.vibrate) {
-      navigator.vibrate([1000, 500, 1000, 500, 1000, 500, 1000]);
+      navigator.vibrate([1000, 500, 1000, 500, 1000]);
     }
-
-    // Notificación Visual de Sistema
     if (Notification.permission === "granted") {
       new Notification("¡TIEMPO DE DESCANSO!", {
-        body: "Tus ojos necesitan un respiro. Mira a lo lejos ahora.",
-        icon: "/favicon.ico", // Opcional
+        body: "Tus ojos necesitan un respiro ahora.",
         vibrate: [200, 100, 200]
       });
     }
@@ -101,16 +92,15 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center p-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center p-6 relative">
       {/* PANTALLA ROJA DE ALARMA */}
       {isAlarmActive && (
         <div className="fixed inset-0 z-[200] bg-red-600 flex flex-col items-center justify-center p-6 text-center">
           <div className="animate-bounce mb-4 text-6xl">🔔</div>
-          <h2 className="text-4xl font-black text-white mb-2 uppercase">¡DESCANSO!</h2>
-          <p className="text-white/80 mb-8">Tus ojos te lo agradecerán</p>
+          <h2 className="text-4xl font-black text-white mb-2 uppercase tracking-tighter">¡DESCANSO!</h2>
           <button 
             onClick={stopAlarm}
-            className="w-full max-w-xs py-8 bg-white text-red-600 rounded-full font-black text-2xl shadow-2xl uppercase"
+            className="w-full max-w-xs py-8 bg-white text-red-600 rounded-full font-black text-2xl shadow-2xl uppercase mt-6"
           >
             ENTENDIDO
           </button>
@@ -124,12 +114,11 @@ const App: React.FC = () => {
       </header>
 
       {/* CONTENIDO PRINCIPAL */}
-      <main className="w-full max-w-md flex flex-col items-center mt-10">
-        <div className="relative w-72 h-72 rounded-full bg-slate-900 shadow-[0_0_50px_rgba(59,130,246,0.15)] flex flex-col items-center justify-center border-8 border-slate-950">
-          <div className="absolute inset-0 rounded-full border-4 border-blue-500/20 border-t-blue-500 animate-spin-slow"></div>
+      <main className="w-full max-w-md flex flex-col items-center mt-10 mb-20">
+        <div className="relative w-72 h-72 rounded-full bg-slate-900 flex flex-col items-center justify-center border-8 border-slate-950 shadow-2xl">
           <span className="text-7xl font-black font-mono tracking-tighter">{formatTime(timeLeft)}</span>
           <span className="text-sm font-bold uppercase tracking-[0.3em] text-blue-400 mt-2">
-            {status === TimerStatus.BREAK ? 'Relájate' : 'Concentración'}
+            {status === TimerStatus.BREAK ? 'Relájate' : 'Trabajando'}
           </span>
         </div>
 
@@ -137,30 +126,25 @@ const App: React.FC = () => {
           onClick={() => status === TimerStatus.IDLE ? setStatus(TimerStatus.RUNNING) : setStatus(TimerStatus.IDLE)}
           className={`mt-12 w-full py-6 rounded-3xl font-black text-xl uppercase tracking-widest transition-all ${status === TimerStatus.IDLE ? 'bg-blue-600 shadow-lg shadow-blue-500/30' : 'bg-slate-800'}`}
         >
-          {status === TimerStatus.IDLE ? 'Comenzar Ciclo' : 'Detener'}
+          {status === TimerStatus.IDLE ? 'Comenzar Ciclo' : 'Reiniciar'}
         </button>
       </main>
+
+      {/* PIE DE PÁGINA PERSONALIZADO */}
+      <footer className="mt-auto mb-4">
+        <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest opacity-80">
+          Aplicación creada para Magalí
+        </p>
+      </footer>
 
       {/* AJUSTES */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950 p-8 flex flex-col">
            <div className="flex justify-between items-center mb-12">
-             <h2 className="text-4xl font-black">Ajustes</h2>
+             <h2 className="text-4xl font-black">Configuración</h2>
              <button onClick={() => setIsSettingsOpen(false)} className="text-3xl text-slate-500">✕</button>
            </div>
            
-           <div className="space-y-10">
+           <div className="space-y-6">
               <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800">
-                <label className="block text-sm font-bold text-slate-400 mb-4 uppercase">Tiempo de Trabajo: {settings.workDuration} min</label>
-                <input type="range" min="1" max="60" value={settings.workDuration} onChange={(e) => setSettings({...settings, workDuration: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none accent-blue-500" />
-              </div>
-           </div>
-
-           <button onClick={() => setIsSettingsOpen(false)} className="mt-auto w-full py-6 bg-white text-black rounded-3xl font-black text-lg uppercase">Guardar Cambios</button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default App;
+                <label className="block text-xs font-black text-slate-500 mb
