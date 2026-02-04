@@ -35,7 +35,7 @@ const App: React.FC = () => {
   const startAlarm = useCallback(() => {
     setIsAlarmActive(true);
     if (settings.soundEnabled && audioRef.current) {
-      audioRef.current.play().catch(() => console.log("Audio bloqueado por el navegador"));
+      audioRef.current.play().catch(() => console.log("Audio bloqueado"));
     }
     if (settings.vibrationEnabled && navigator.vibrate) {
       navigator.vibrate([1000, 500, 1000, 500, 1000]);
@@ -93,7 +93,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center p-6 relative">
-      {/* PANTALLA ROJA DE ALARMA */}
       {isAlarmActive && (
         <div className="fixed inset-0 z-[200] bg-red-600 flex flex-col items-center justify-center p-6 text-center">
           <div className="animate-bounce mb-4 text-6xl">🔔</div>
@@ -107,13 +106,11 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* HEADER */}
       <header className="w-full max-w-md flex justify-between items-center py-6">
         <h1 className="text-2xl font-black italic text-blue-500">VisiónSana</h1>
         <button onClick={() => setIsSettingsOpen(true)} className="p-3 bg-slate-900 rounded-2xl border border-slate-800">⚙️</button>
       </header>
 
-      {/* CONTENIDO PRINCIPAL */}
       <main className="w-full max-w-md flex flex-col items-center mt-10 mb-20">
         <div className="relative w-72 h-72 rounded-full bg-slate-900 flex flex-col items-center justify-center border-8 border-slate-950 shadow-2xl">
           <span className="text-7xl font-black font-mono tracking-tighter">{formatTime(timeLeft)}</span>
@@ -130,21 +127,36 @@ const App: React.FC = () => {
         </button>
       </main>
 
-      {/* PIE DE PÁGINA PERSONALIZADO */}
       <footer className="mt-auto mb-4">
         <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest opacity-80">
           Aplicación creada para Magalí
         </p>
       </footer>
 
-      {/* AJUSTES */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950 p-8 flex flex-col">
            <div className="flex justify-between items-center mb-12">
-             <h2 className="text-4xl font-black">Configuración</h2>
+             <h2 className="text-4xl font-black text-white">Configuración</h2>
              <button onClick={() => setIsSettingsOpen(false)} className="text-3xl text-slate-500">✕</button>
            </div>
            
            <div className="space-y-6">
               <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800">
-                <label className="block text-xs font-black text-slate-500 mb
+                <label className="block text-xs font-black text-slate-500 mb-4 uppercase">Trabajo: {settings.workDuration} min</label>
+                <input type="range" min="1" max="60" value={settings.workDuration} onChange={(e) => setSettings({...settings, workDuration: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none accent-blue-500" />
+              </div>
+
+              <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800">
+                <label className="block text-xs font-black text-slate-500 mb-4 uppercase">Descanso: {settings.breakDuration} min</label>
+                <input type="range" min="1" max="10" value={settings.breakDuration} onChange={(e) => setSettings({...settings, breakDuration: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none accent-emerald-500" />
+              </div>
+           </div>
+
+           <button onClick={() => setIsSettingsOpen(false)} className="mt-auto w-full py-6 bg-white text-black rounded-3xl font-black text-lg uppercase shadow-xl">Guardar</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
