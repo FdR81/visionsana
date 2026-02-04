@@ -144,8 +144,17 @@ const App: React.FC = () => {
            <h2 className="text-3xl font-black mb-10">Ajustes</h2>
            <div className="space-y-8">
               <div>
+                {/* Sección de Trabajo */}
                 <label className="block text-sm mb-2">Trabajo: {settings.workDuration} min</label>
-                <input type="range" min="1" max="60" value={settings.workDuration} onChange={(e) => setSettings({...settings, workDuration: parseInt(e.target.value)})} className="w-full" />
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="60" 
+                  step="1" 
+                  value={settings.workDuration} 
+                  onChange={(e) => setSettings({...settings, workDuration: parseInt(e.target.value)})} 
+                  className="w-full" 
+                />
               </div>
               <div>
                 <label className="block text-sm mb-2">Descanso: {settings.breakDuration} min</label>
