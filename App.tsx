@@ -10,41 +10,50 @@ const LOCAL_TIPS: EyeTip[] = [
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<TimerStatus>(TimerStatus.IDLE);
-  const [timeLeft, setTimeLeft] = useState(1 * 60); // Ahora inicia en 1 min por defecto
+  const [timeLeft, setTimeLeft] = useState(1 * 60);
   const [isAlarmActive, setIsAlarmActive] = useState(false);
   const [settings, setSettings] = useState<UserSettings>(() => {
     const saved = localStorage.getItem('visionSanaSettings');
     return saved ? JSON.parse(saved) : {
-      workDuration: 1, // Valor inicial cambiado a 1
-      breakDuration: 1, 
-      notificationsEnabled: true,
-      soundEnabled: true, 
-      vibrationEnabled: true
+      workDuration: 1, breakDuration: 1, notificationsEnabled: true,
+      soundEnabled: true, vibrationEnabled: true
     };
   });
   
-  const [currentTip, setCurrentTip] = useState<EyeTip | null>(LOCAL_TIPS[0]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const timerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // 1. Pedir permiso de notificaciones al cargar
   useEffect(() => {
-    audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+    // Sonido de alarma más fuerte (tipo sirena industrial)
+    audioRef.current = new Audio('https://actions.google.com/sounds/v1/alarms/industrial_alarm_loop.ogg');
     audioRef.current.loop = true;
   }, []);
 
-  const getRandomTip = () => {
-    const randomIndex = Math.floor(Math.random() * LOCAL_TIPS.length);
-    setCurrentTip(LOCAL_TIPS[randomIndex]);
-  };
-
   const startAlarm = useCallback(() => {
     setIsAlarmActive(true);
+
+    // Sonido
     if (settings.soundEnabled && audioRef.current) {
-      audioRef.current.play().catch(e => console.log("Permiso de audio requerido"));
+      audioRef.current.play().catch(() => console.log("Permiso de audio requerido"));
     }
+
+    // Vibración de "Emergencia" (Vibra 1 seg, para 0.5 seg)
     if (settings.vibrationEnabled && navigator.vibrate) {
-      navigator.vibrate([500, 200, 500, 200, 500]);
+      navigator.vibrate([1000, 500, 1000, 500, 1000, 500, 1000]);
+    }
+
+    // Notificación Visual de Sistema
+    if (Notification.permission === "granted") {
+      new Notification("¡TIEMPO DE DESCANSO!", {
+        body: "Tus ojos necesitan un respiro. Mira a lo lejos ahora.",
+        icon: "/favicon.ico", // Opcional
+        vibrate: [200, 100, 200]
+      });
     }
   }, [settings]);
 
@@ -70,11 +79,9 @@ const App: React.FC = () => {
             startAlarm();
             if (status === TimerStatus.RUNNING) {
               setStatus(TimerStatus.BREAK);
-              getRandomTip();
               return settings.breakDuration * 60;
             } else {
               setStatus(TimerStatus.RUNNING);
-              getRandomTip();
               return settings.workDuration * 60;
             }
           }
@@ -95,67 +102,61 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center p-6">
+      {/* PANTALLA ROJA DE ALARMA */}
       {isAlarmActive && (
-        <div className="fixed inset-0 z-[200] bg-red-600 flex flex-col items-center justify-center p-6 animate-pulse">
-          <h2 className="text-5xl font-black text-white text-center mb-8">¡TIEMPO!</h2>
-          <button onClick={stopAlarm} className="w-full max-w-xs py-8 bg-white text-red-600 rounded-[2rem] font-black text-xl uppercase">
-            Detener Alarma
+        <div className="fixed inset-0 z-[200] bg-red-600 flex flex-col items-center justify-center p-6 text-center">
+          <div className="animate-bounce mb-4 text-6xl">🔔</div>
+          <h2 className="text-4xl font-black text-white mb-2 uppercase">¡DESCANSO!</h2>
+          <p className="text-white/80 mb-8">Tus ojos te lo agradecerán</p>
+          <button 
+            onClick={stopAlarm}
+            className="w-full max-w-xs py-8 bg-white text-red-600 rounded-full font-black text-2xl shadow-2xl uppercase"
+          >
+            ENTENDIDO
           </button>
         </div>
       )}
 
-      <header className="w-full max-w-md flex justify-between items-center py-4 mb-8">
-        <h1 className="text-xl font-black italic text-blue-500">VisiónSana</h1>
-        <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-slate-900 rounded-xl">⚙️</button>
+      {/* HEADER */}
+      <header className="w-full max-w-md flex justify-between items-center py-6">
+        <h1 className="text-2xl font-black italic text-blue-500">VisiónSana</h1>
+        <button onClick={() => setIsSettingsOpen(true)} className="p-3 bg-slate-900 rounded-2xl border border-slate-800">⚙️</button>
       </header>
 
-      <main className="w-full max-w-md flex flex-col items-center gap-10">
-        <div className="w-64 h-64 rounded-full bg-slate-900 shadow-xl flex flex-col items-center justify-center border-4 border-blue-500/20">
-          <span className="text-6xl font-black font-mono">{formatTime(timeLeft)}</span>
-          <div className="text-[10px] font-bold uppercase tracking-widest mt-2 text-blue-400">
-            {status === TimerStatus.BREAK ? 'Descanso' : 'Trabajo'}
-          </div>
+      {/* CONTENIDO PRINCIPAL */}
+      <main className="w-full max-w-md flex flex-col items-center mt-10">
+        <div className="relative w-72 h-72 rounded-full bg-slate-900 shadow-[0_0_50px_rgba(59,130,246,0.15)] flex flex-col items-center justify-center border-8 border-slate-950">
+          <div className="absolute inset-0 rounded-full border-4 border-blue-500/20 border-t-blue-500 animate-spin-slow"></div>
+          <span className="text-7xl font-black font-mono tracking-tighter">{formatTime(timeLeft)}</span>
+          <span className="text-sm font-bold uppercase tracking-[0.3em] text-blue-400 mt-2">
+            {status === TimerStatus.BREAK ? 'Relájate' : 'Concentración'}
+          </span>
         </div>
 
         <button 
           onClick={() => status === TimerStatus.IDLE ? setStatus(TimerStatus.RUNNING) : setStatus(TimerStatus.IDLE)}
-          className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-widest ${status === TimerStatus.IDLE ? 'bg-blue-600' : 'bg-slate-800'}`}
+          className={`mt-12 w-full py-6 rounded-3xl font-black text-xl uppercase tracking-widest transition-all ${status === TimerStatus.IDLE ? 'bg-blue-600 shadow-lg shadow-blue-500/30' : 'bg-slate-800'}`}
         >
-          {status === TimerStatus.IDLE ? 'Comenzar' : 'Reiniciar'}
+          {status === TimerStatus.IDLE ? 'Comenzar Ciclo' : 'Detener'}
         </button>
       </main>
 
+      {/* AJUSTES */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950 p-6 flex flex-col">
-           <button onClick={() => setIsSettingsOpen(false)} className="self-end text-2xl">✕</button>
-           <h2 className="text-3xl font-black mb-10">Ajustes</h2>
-           <div className="space-y-8">
-              <div>
-                <label className="block text-sm mb-2 text-slate-400">Tiempo de Trabajo: <span className="text-white font-bold">{settings.workDuration} min</span></label>
-                <input 
-                  type="range" 
-                  min="1" 
-                  max="60" 
-                  step="1" 
-                  value={settings.workDuration} 
-                  onChange={(e) => setSettings({...settings, workDuration: parseInt(e.target.value)})} 
-                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none accent-blue-500" 
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-2 text-slate-400">Tiempo de Descanso: <span className="text-white font-bold">{settings.breakDuration} min</span></label>
-                <input 
-                  type="range" 
-                  min="1" 
-                  max="10" 
-                  step="1"
-                  value={settings.breakDuration} 
-                  onChange={(e) => setSettings({...settings, breakDuration: parseInt(e.target.value)})} 
-                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none accent-emerald-500" 
-                />
+        <div className="fixed inset-0 z-50 bg-slate-950 p-8 flex flex-col">
+           <div className="flex justify-between items-center mb-12">
+             <h2 className="text-4xl font-black">Ajustes</h2>
+             <button onClick={() => setIsSettingsOpen(false)} className="text-3xl text-slate-500">✕</button>
+           </div>
+           
+           <div className="space-y-10">
+              <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800">
+                <label className="block text-sm font-bold text-slate-400 mb-4 uppercase">Tiempo de Trabajo: {settings.workDuration} min</label>
+                <input type="range" min="1" max="60" value={settings.workDuration} onChange={(e) => setSettings({...settings, workDuration: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none accent-blue-500" />
               </div>
            </div>
-           <button onClick={() => setIsSettingsOpen(false)} className="mt-auto w-full py-5 bg-blue-600 text-white rounded-[2rem] font-black uppercase">Guardar Cambios</button>
+
+           <button onClick={() => setIsSettingsOpen(false)} className="mt-auto w-full py-6 bg-white text-black rounded-3xl font-black text-lg uppercase">Guardar Cambios</button>
         </div>
       )}
     </div>
